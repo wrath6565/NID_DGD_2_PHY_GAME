@@ -1,7 +1,13 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
+
 
 public class PlayerController : MonoBehaviour
 {
+
+    [Header("Death")]
+    public float deathY = -10f;
+
     [Header("Movement")]
     public float moveSpeed = 6f;
     public float airControlMultiplier = 0.4f;
@@ -26,9 +32,27 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+
+
+        {
+            CheckGround();
+
+            // Restart if player falls below Y
+            if (transform.position.y < deathY)
+            {
+                RestartGame();
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+            {
+                Jump();
+            }
+        }
+
         CheckGround();
 
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        if (Input.GetKeyDown(KeyCode.Return) && isGrounded)
         {
             Jump();
         }
@@ -79,4 +103,12 @@ public class PlayerController : MonoBehaviour
             transform.position + Vector3.down * groundCheckDistance
         );
     }
+
+    void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+
+
 }
