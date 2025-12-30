@@ -3,6 +3,30 @@ using System.Collections.Generic;
 
 public class PlatformSpawner : MonoBehaviour
 {
+
+    [Header("Final Platform")]
+    public GameObject finalPlatformPrefab;
+    public float finalPlatformYOffset = 0f;
+
+    private bool finalPlatformSpawned = false;
+
+    [Header("Win Condition")]
+    public int maxPlatforms = 30;
+
+    public float winOffset = 2f;
+
+    [Header("Final Platform")]
+    
+    
+
+   
+
+    
+
+    private int spawnedCount = 0;
+    private bool gameWon = false;
+
+
     [Header("References")]
     public Transform player;
     public Transform spawnStartPoint;
@@ -31,38 +55,85 @@ public class PlatformSpawner : MonoBehaviour
     {
         lastSpawnX = spawnStartPoint.position.x;
 
-        // Initial spawn
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 5 && spawnedCount < maxPlatforms; i++)
         {
             SpawnPlatform();
         }
     }
+
 
     void Update()
+{
+    if (spawnedCount < maxPlatforms &&
+        player.position.x + spawnDistanceAhead > lastSpawnX)
     {
-        if (player.position.x + spawnDistanceAhead > lastSpawnX)
-        {
-            SpawnPlatform();
-        }
-
-        CleanupPlatforms();
+        SpawnPlatform();
     }
+}
+
+
 
     void SpawnPlatform()
+{
+    // Spawn pendulums first
+    if (spawnedCount < maxPlatforms)
     {
         lastSpawnX += distanceBetweenPlatforms;
-
-        float zOffset = Random.Range(-zVariation, zVariation);
 
         Vector3 spawnPos = new Vector3(
             lastSpawnX,
             platformY,
-            baseZ + zOffset
+            baseZ
         );
 
-        GameObject platform = Instantiate(pendulumPrefab, spawnPos, Quaternion.identity);
-        spawnedPlatforms.Add(platform);
+        Instantiate(pendulumPrefab, spawnPos, Quaternion.identity);
+        spawnedCount++;
+
+        // If this was the LAST pendulum, immediately spawn final platform
+        if (spawnedCount == maxPlatforms)
+        {
+            SpawnFinalPlatform();
+        }
+
+        return;
     }
+}
+
+
+    void SpawnFinalPlatform()
+{
+    if (finalPlatformSpawned)
+        return;
+
+    lastSpawnX += distanceBetweenPlatforms;
+
+    Vector3 finalPos = new Vector3(
+        lastSpawnX,
+        platformY + finalPlatformYOffset,
+        baseZ
+    );
+
+    Instantiate(finalPlatformPrefab, finalPos, Quaternion.identity);
+    finalPlatformSpawned = true;
+
+    Debug.Log("Final platform spawned");
+}
+
+
+    void CheckWinCondition()
+    {
+        if (spawnedCount < maxPlatforms)
+            return;
+
+        float lastPlatformX = lastSpawnX;
+
+        if (player.position.x > lastPlatformX + winOffset)
+        {
+            gameWon = true;
+            OnWin();
+        }
+    }
+
 
     void CleanupPlatforms()
     {
@@ -75,4 +146,14 @@ public class PlatformSpawner : MonoBehaviour
             }
         }
     }
+
+
+    void OnWin()
+    {
+        Debug.Log("YOU WIN!");
+        UnityEngine.SceneManagement.SceneManager.LoadScene(
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
+        );
+    }
+
 }
