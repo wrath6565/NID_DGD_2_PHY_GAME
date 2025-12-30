@@ -1,18 +1,24 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class WinUI : MonoBehaviour
 {
-    public static WinUI Instance;
     public GameObject winPanel;
 
     void Awake()
     {
-        Instance = this;
         winPanel.SetActive(false);
     }
 
     public void ShowWin()
     {
         winPanel.SetActive(true);
+        Time.timeScale = 0f;
+    }
+
+    public void RestartGame()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

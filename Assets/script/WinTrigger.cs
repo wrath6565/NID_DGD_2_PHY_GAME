@@ -6,13 +6,7 @@ public class WinTrigger : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            WinGame();
+            FindObjectOfType<WinUI>().ShowWin();
         }
-    }
-
-    void WinGame()
-    {
-        Time.timeScale = 0f;
-        WinUI.Instance.ShowWin();
     }
 }

@@ -6,7 +6,9 @@ public class PlatformSpawner : MonoBehaviour
 
     [Header("Final Platform")]
     public GameObject finalPlatformPrefab;
-    public float finalPlatformYOffset = 0f;
+    [Header("Final Platform Settings")]
+    public float finalPlatformY = 2.0f;
+
 
     private bool finalPlatformSpawned = false;
 
@@ -16,12 +18,8 @@ public class PlatformSpawner : MonoBehaviour
     public float winOffset = 2f;
 
     [Header("Final Platform")]
-    
-    
 
-   
 
-    
 
     private int spawnedCount = 0;
     private bool gameWon = false;
@@ -63,41 +61,41 @@ public class PlatformSpawner : MonoBehaviour
 
 
     void Update()
-{
-    if (spawnedCount < maxPlatforms &&
-        player.position.x + spawnDistanceAhead > lastSpawnX)
     {
-        SpawnPlatform();
+        if (spawnedCount < maxPlatforms &&
+            player.position.x + spawnDistanceAhead > lastSpawnX)
+        {
+            SpawnPlatform();
+        }
     }
-}
 
 
 
     void SpawnPlatform()
-{
-    // Spawn pendulums first
-    if (spawnedCount < maxPlatforms)
     {
-        lastSpawnX += distanceBetweenPlatforms;
-
-        Vector3 spawnPos = new Vector3(
-            lastSpawnX,
-            platformY,
-            baseZ
-        );
-
-        Instantiate(pendulumPrefab, spawnPos, Quaternion.identity);
-        spawnedCount++;
-
-        // If this was the LAST pendulum, immediately spawn final platform
-        if (spawnedCount == maxPlatforms)
+        // Spawn pendulums first
+        if (spawnedCount < maxPlatforms)
         {
-            SpawnFinalPlatform();
-        }
+            lastSpawnX += distanceBetweenPlatforms;
 
-        return;
+            Vector3 spawnPos = new Vector3(
+                lastSpawnX,
+                platformY,
+                baseZ
+            );
+
+            Instantiate(pendulumPrefab, spawnPos, Quaternion.identity);
+            spawnedCount++;
+
+            // If this was the LAST pendulum, immediately spawn final platform
+            if (spawnedCount == maxPlatforms)
+            {
+                SpawnFinalPlatform();
+            }
+
+            return;
+        }
     }
-}
 
 
     void SpawnFinalPlatform()
@@ -109,15 +107,16 @@ public class PlatformSpawner : MonoBehaviour
 
     Vector3 finalPos = new Vector3(
         lastSpawnX,
-        platformY + finalPlatformYOffset,
+        finalPlatformY, // ABSOLUTE Y, not relative
         baseZ
     );
 
     Instantiate(finalPlatformPrefab, finalPos, Quaternion.identity);
     finalPlatformSpawned = true;
 
-    Debug.Log("Final platform spawned");
+    Debug.Log("Final platform spawned at Y = " + finalPlatformY);
 }
+
 
 
     void CheckWinCondition()
