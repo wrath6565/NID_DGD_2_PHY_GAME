@@ -1,9 +1,9 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
-
 
 public class PlayerController : MonoBehaviour
 {
+    private Rigidbody rb;
+    private Vector3 startPosition;
 
     [Header("Death")]
     public float deathY = -10f;
@@ -17,7 +17,6 @@ public class PlayerController : MonoBehaviour
     public LayerMask groundLayer;
     public float groundCheckDistance = 0.2f;
 
-    private Rigidbody rb;
     private bool isGrounded;
 
     void Start()
@@ -28,31 +27,24 @@ public class PlayerController : MonoBehaviour
         {
             Debug.LogError("Rigidbody missing on Player!");
         }
+
+        // Save start position for respawn
+        startPosition = transform.position;
     }
 
     void Update()
     {
-
-
-        {
-            CheckGround();
-
-            // Restart if player falls below Y
-            if (transform.position.y < deathY)
-            {
-                RestartGame();
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
-            {
-                Jump();
-            }
-        }
-
         CheckGround();
 
-        if (Input.GetKeyDown(KeyCode.Return) && isGrounded)
+        // Respawn if player falls
+        if (transform.position.y < deathY)
+        {
+            Respawn();
+            return;
+        }
+
+        // Jump input
+        if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)) && isGrounded)
         {
             Jump();
         }
@@ -70,7 +62,6 @@ public class PlayerController : MonoBehaviour
 
         Vector3 velocity = rb.linearVelocity;
         velocity.x = horizontalInput * moveSpeed * controlMultiplier;
-
         rb.linearVelocity = velocity;
     }
 
@@ -86,16 +77,15 @@ public class PlayerController : MonoBehaviour
 
     void CheckGround()
     {
-        Ray ray = new Ray(transform.position, Vector3.down);
-
         isGrounded = Physics.Raycast(
-            ray,
+            transform.position,
+            Vector3.down,
             groundCheckDistance,
             groundLayer
         );
     }
 
-    void OnDrawGizmos()
+    void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawLine(
@@ -104,11 +94,18 @@ public class PlayerController : MonoBehaviour
         );
     }
 
-    void RestartGame()
+    void Respawn()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+
+        transform.position = startPosition;
+
+        // Reset platforms (world reset, not timer/UI)
+        PlatformSpawner spawner = FindObjectOfType<PlatformSpawner>();
+        if (spawner != null)
+        {
+            spawner.ResetSpawner();
+        }
     }
-
-
-
 }

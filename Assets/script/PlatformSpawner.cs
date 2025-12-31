@@ -3,62 +3,46 @@ using System.Collections.Generic;
 
 public class PlatformSpawner : MonoBehaviour
 {
-
-    [Header("Final Platform")]
-    public GameObject finalPlatformPrefab;
-    [Header("Final Platform Settings")]
-    public float finalPlatformY = 2.0f;
-
-
-    private bool finalPlatformSpawned = false;
-
-    [Header("Win Condition")]
-    public int maxPlatforms = 30;
-
-    public float winOffset = 2f;
-
-    [Header("Final Platform")]
-
-
-
-    private int spawnedCount = 0;
-    private bool gameWon = false;
-
-
     [Header("References")]
     public Transform player;
     public Transform spawnStartPoint;
+
+    [Header("Platform Prefabs")]
     public GameObject pendulumPrefab;
+    public GameObject rotatingPlatformPrefab;
+    public GameObject finalPlatformPrefab;
+
+    [Header("Difficulty")]
+    [Range(0f, 1f)]
+    public float rotatingPlatformChance = 0.3f;
 
     [Header("Spawn Settings")]
     public float spawnDistanceAhead = 15f;
     public float distanceBetweenPlatforms = 6f;
-
-    [Tooltip("Fixed Y height for all pendulums")]
     public float platformY = 2.5f;
-
-    [Tooltip("Base Z position for pendulums")]
     public float baseZ = 0f;
 
-    [Tooltip("Optional small Z variation (set to 0 for none)")]
-    public float zVariation = 0f;
+    [Header("Final Platform Settings")]
+    public float finalPlatformY = 2.0f;
+
+    [Header("Win Condition")]
+    public int maxPlatforms = 30;
 
     [Header("Cleanup")]
     public float destroyDistanceBehind = 10f;
 
+    // Internal state
     private float lastSpawnX;
+    private int spawnedCount = 0;
+    private bool finalPlatformSpawned = false;
+    private bool lastWasRotating = false;
+
     private List<GameObject> spawnedPlatforms = new List<GameObject>();
 
     void Start()
     {
-        lastSpawnX = spawnStartPoint.position.x;
-
-        for (int i = 0; i < 5 && spawnedCount < maxPlatforms; i++)
-        {
-            SpawnPlatform();
-        }
+        ResetSpawner();
     }
-
 
     void Update()
     {
@@ -67,78 +51,80 @@ public class PlatformSpawner : MonoBehaviour
         {
             SpawnPlatform();
         }
+
+        CleanupPlatforms();
     }
-
-
 
     void SpawnPlatform()
     {
-        // Spawn pendulums first
-        if (spawnedCount < maxPlatforms)
-        {
-            lastSpawnX += distanceBetweenPlatforms;
-
-            Vector3 spawnPos = new Vector3(
-                lastSpawnX,
-                platformY,
-                baseZ
-            );
-
-            Instantiate(pendulumPrefab, spawnPos, Quaternion.identity);
-            spawnedCount++;
-
-            // If this was the LAST pendulum, immediately spawn final platform
-            if (spawnedCount == maxPlatforms)
-            {
-                SpawnFinalPlatform();
-            }
-
+        if (spawnedCount >= maxPlatforms)
             return;
+
+        lastSpawnX += distanceBetweenPlatforms;
+
+        Vector3 spawnPos = new Vector3(
+            lastSpawnX,
+            platformY,
+            baseZ
+        );
+
+        GameObject platformToSpawn;
+
+        // Balancing rule: never spawn two rotating platforms in a row
+        if (lastWasRotating)
+        {
+            platformToSpawn = pendulumPrefab;
+            lastWasRotating = false;
+        }
+        else
+        {
+            if (Random.value < rotatingPlatformChance)
+            {
+                platformToSpawn = rotatingPlatformPrefab;
+                lastWasRotating = true;
+            }
+            else
+            {
+                platformToSpawn = pendulumPrefab;
+                lastWasRotating = false;
+            }
+        }
+
+        GameObject platform = Instantiate(platformToSpawn, spawnPos, Quaternion.identity);
+        spawnedPlatforms.Add(platform);
+        spawnedCount++;
+
+        // Spawn final platform immediately after last normal platform
+        if (spawnedCount == maxPlatforms)
+        {
+            SpawnFinalPlatform();
         }
     }
-
 
     void SpawnFinalPlatform()
-{
-    if (finalPlatformSpawned)
-        return;
-
-    lastSpawnX += distanceBetweenPlatforms;
-
-    Vector3 finalPos = new Vector3(
-        lastSpawnX,
-        finalPlatformY, // ABSOLUTE Y, not relative
-        baseZ
-    );
-
-    Instantiate(finalPlatformPrefab, finalPos, Quaternion.identity);
-    finalPlatformSpawned = true;
-
-    Debug.Log("Final platform spawned at Y = " + finalPlatformY);
-}
-
-
-
-    void CheckWinCondition()
     {
-        if (spawnedCount < maxPlatforms)
+        if (finalPlatformSpawned)
             return;
 
-        float lastPlatformX = lastSpawnX;
+        lastSpawnX += distanceBetweenPlatforms;
 
-        if (player.position.x > lastPlatformX + winOffset)
-        {
-            gameWon = true;
-            OnWin();
-        }
+        Vector3 finalPos = new Vector3(
+            lastSpawnX,
+            finalPlatformY,
+            baseZ
+        );
+
+        Instantiate(finalPlatformPrefab, finalPos, Quaternion.identity);
+        finalPlatformSpawned = true;
     }
-
 
     void CleanupPlatforms()
     {
         for (int i = spawnedPlatforms.Count - 1; i >= 0; i--)
         {
-            if (spawnedPlatforms[i].transform.position.x < player.position.x - destroyDistanceBehind)
+            if (spawnedPlatforms[i] != null &&
+                spawnedPlatforms[i].transform.position.x <
+                player.position.x - destroyDistanceBehind)
             {
                 Destroy(spawnedPlatforms[i]);
                 spawnedPlatforms.RemoveAt(i);
@@ -146,13 +132,30 @@ public class PlatformSpawner : MonoBehaviour
         }
     }
 
-
-    void OnWin()
+    // Called by PlayerController when the player respawns
+    public void ResetSpawner()
     {
-        Debug.Log("YOU WIN!");
-        UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
-        );
-    }
+        // Destroy existing platforms
+        for (int i = 0; i < spawnedPlatforms.Count; i++)
+        {
+            if (spawnedPlatforms[i] != null)
+            {
+                Destroy(spawnedPlatforms[i]);
+            }
+        }
 
+        spawnedPlatforms.Clear();
+
+        // Reset state
+        spawnedCount = 0;
+        lastSpawnX = spawnStartPoint.position.x;
+        finalPlatformSpawned = false;
+        lastWasRotating = false;
+
+        // Spawn initial platforms
+        for (int i = 0; i < 5 && spawnedCount < maxPlatforms; i++)
+        {
+            SpawnPlatform();
+        }
+    }
 }
