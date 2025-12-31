@@ -2,6 +2,11 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip jumpSound;
+
     private Rigidbody rb;
     private Vector3 startPosition;
 
@@ -28,9 +33,17 @@ public class PlayerController : MonoBehaviour
             Debug.LogError("Rigidbody missing on Player!");
         }
 
-        // Save start position for respawn
+        audioSource = GetComponentInChildren<AudioSource>();
+
+
+        if (audioSource == null)
+        {
+            Debug.LogError("AudioSource missing on Player!");
+        }
+
         startPosition = transform.position;
     }
+
 
     void Update()
     {
@@ -73,7 +86,14 @@ public class PlayerController : MonoBehaviour
 
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         isGrounded = false;
+
+        // 🔊 Play jump sound
+        if (jumpSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(jumpSound);
+        }
     }
+
 
     void CheckGround()
     {

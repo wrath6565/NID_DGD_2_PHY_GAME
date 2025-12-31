@@ -3,6 +3,21 @@ using System.Collections.Generic;
 
 public class PlatformSpawner : MonoBehaviour
 {
+
+
+    [Header("Platform Visual Support")]
+    public GameObject supportPrefab;
+
+    public float rotatingSupportZOffset = -1.5f;
+    public float pendulumSupportZOffset = -1.5f;
+    public float supportYOffset = 0f;
+
+
+
+
+
+
+
     [Header("References")]
     public Transform player;
     public Transform spawnStartPoint;
@@ -70,7 +85,7 @@ public class PlatformSpawner : MonoBehaviour
 
         GameObject platformToSpawn;
 
-        // Balancing rule: never spawn two rotating platforms in a row
+        // Balancing rule: never two rotating platforms in a row
         if (lastWasRotating)
         {
             platformToSpawn = pendulumPrefab;
@@ -90,16 +105,31 @@ public class PlatformSpawner : MonoBehaviour
             }
         }
 
+        // Spawn platform
         GameObject platform = Instantiate(platformToSpawn, spawnPos, Quaternion.identity);
         spawnedPlatforms.Add(platform);
         spawnedCount++;
 
-        // Spawn final platform immediately after last normal platform
+        // 🔹 ALWAYS spawn support cube
+        if (supportPrefab != null)
+        {
+            float zOffset = (platformToSpawn == rotatingPlatformPrefab)
+                ? rotatingSupportZOffset
+                : pendulumSupportZOffset;
+
+            GameObject support = Instantiate(supportPrefab, platform.transform);
+            support.transform.localPosition = new Vector3(0f, supportYOffset, zOffset);
+            // Force correct orientation
+            support.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        }
+
+        // Spawn final platform after last normal platform
         if (spawnedCount == maxPlatforms)
         {
             SpawnFinalPlatform();
         }
     }
+
 
     void SpawnFinalPlatform()
     {
